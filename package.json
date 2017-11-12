@@ -11,6 +11,8 @@
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
+    "image-saver-nodejs": "^1.0.3",
+    "request": "^2.83.0",
     "seq-queue": "^0.0.5",
     "task-queue": "^1.0.2"
   }

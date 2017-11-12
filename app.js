@@ -2,7 +2,17 @@ const express = require('express')
 const server = express()
 const bodyParser = require('body-parser')
 const taskQueue = require('seq-queue')
+const tesseractApi = require('./tesseract-api')
 const queue = taskQueue.createQueue(1000)
+const imgQueue = taskQueue.createQueue(1000)
+const request = require('request')
+var ImageSaver = require('image-saver-nodejs/lib')
+var imageSaver = new ImageSaver()
+server.use(function(req,res,next){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+})
 server.use(bodyParser.json())
 server.use(bodyParser.urlencoded({extended:true}))
 server.get('/users',(req,res)=>{
@@ -17,9 +27,32 @@ server.post('/send_sms',(req,res)=>{
         const currency = getRandomCurrency()
         const type = getRandomType()
         const expense = getRandomExpense()
-        res.json({relevant,credit_category,personal_account,currency,type,expense})
-        task.done()
+        request.post('http://localhost:9000/send_sms',{headers:{'Content-type':'application/json'},formData:req.body},(err,response,body)=>{
+            //console.log(body)
+            res.json(body)
+            task.done()
+        })
     })
+})
+server.get('/get-text-from-image',(req,res)=>{
+    imgQueue.push((task)=>{
+        const date = new Date()
+        const fileName = `test_${date.getTime()}.png`
+        imageSaver.saveFile(fileName,req.query.imgString).then((data)=>{
+            console.log(data.status)
+            console.log(data.msg)
+            tesseractApi.getTextFromImage(fileName).then((text)=>{
+                res.send(text)
+            }).catch((err)=>{
+                res.send("error")
+            })
+            task.done()
+        }).catch((err)=>{
+            console.log(err)
+        })
+
+    })
+
 })
 const getRandomRelevance = ()=>{
     const relvance_array = [true,false]
